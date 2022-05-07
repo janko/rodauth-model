@@ -10,7 +10,7 @@ Gem::Specification.new do |spec|
   spec.summary       = spec.description
   spec.homepage      = "https://github.com/janko/rodauth-model"
   spec.license       = "MIT"
-  spec.required_ruby_version = ">= 2.4"
+  spec.required_ruby_version = ">= 2.3"
 
   spec.metadata["source_code_uri"] = "https://github.com/janko/rodauth-model"
 
