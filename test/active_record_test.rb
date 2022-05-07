@@ -19,6 +19,9 @@ describe "Active Record model mixin" do
   after do
     Object.send(:remove_const, :Account)
     ActiveRecord::Base.clear_cache! # clear schema cache
+    if ActiveRecord.version < Gem::Version.new("7.0")
+      ActiveSupport::Dependencies.clear # clear cache used for :class_name association option
+    end
   end
 
   it "defines password attribute with a column" do
