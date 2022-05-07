@@ -21,4 +21,9 @@ Gem::Specification.new do |spec|
 
   spec.add_development_dependency "minitest"
   spec.add_development_dependency "minitest-hooks"
+  spec.add_development_dependency "bcrypt"
+  spec.add_development_dependency "jwt"
+  spec.add_development_dependency "rotp"
+  spec.add_development_dependency "rqrcode"
+  spec.add_development_dependency "webauthn" unless RUBY_ENGINE == "jruby"
 end
