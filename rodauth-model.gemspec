@@ -18,4 +18,7 @@ Gem::Specification.new do |spec|
   spec.require_paths = ["lib"]
 
   spec.add_dependency "rodauth", "~> 2.0"
+
+  spec.add_development_dependency "minitest"
+  spec.add_development_dependency "minitest-hooks"
 end

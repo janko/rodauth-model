@@ -1,6 +1,26 @@
 require "test_helper"
 
 describe "Active Record model mixin" do
+  around do |&block|
+    ActiveRecord::Base.transaction do
+      super(&block)
+      # skip rolling back record state, since it crashes on composite primary keys
+      ActiveRecord::Base.connection.current_transaction.records&.clear
+      raise ActiveRecord::Rollback
+    end
+  end
+
+  before do
+    account_class = Class.new(ActiveRecord::Base)
+    account_class.table_name = :accounts
+    Object.const_set(:Account, account_class) # give it a name
+  end
+
+  after do
+    Object.send(:remove_const, :Account)
+    ActiveRecord::Base.clear_cache! # clear schema cache
+  end
+
   it "defines password attribute with a column" do
     account = password_column_account
 
@@ -26,7 +46,7 @@ describe "Active Record model mixin" do
     account.password = "secret"
     assert_equal "secret", account.password
 
-    assert_instance_of account.class::PasswordHash, account.password_hash
+    assert_instance_of Account::PasswordHash, account.password_hash
     assert_operator BCrypt::Password.new(account.password_hash.password_hash), :==, "secret"
 
     refute account.password_hash.persisted?
@@ -68,7 +88,8 @@ describe "Active Record model mixin" do
     account = build_account do
       enable :jwt_refresh, :email_auth, :account_expiration, :audit_logging,
         :disallow_password_reuse, :otp, :sms_codes, :password_expiration,
-        :single_session
+        :single_session, :remember, :verify_account, :reset_password,
+        :verify_login_change, :lockout, :active_sessions, :recovery_codes
 
       enable :webauthn unless RUBY_ENGINE == "jruby"
     end
@@ -76,71 +97,71 @@ describe "Active Record model mixin" do
     account.save!
 
     account.create_remember_key!(id: account.id, key: "key", deadline: Time.now)
-    assert_instance_of account.class::RememberKey, account.remember_key
+    assert_instance_of Account::RememberKey, account.remember_key
 
     account.create_verification_key(id: account.id, key: "key")
-    assert_instance_of account.class::VerificationKey, account.verification_key
+    assert_instance_of Account::VerificationKey, account.verification_key
 
     account.create_password_reset_key(id: account.id, key: "key", deadline: Time.now)
-    assert_instance_of account.class::PasswordResetKey, account.password_reset_key
+    assert_instance_of Account::PasswordResetKey, account.password_reset_key
 
     account.create_login_change_key(id: account.id, key: "key", login: "foo@bar.com", deadline: Time.now)
-    assert_instance_of account.class::LoginChangeKey, account.login_change_key
+    assert_instance_of Account::LoginChangeKey, account.login_change_key
 
     account.create_lockout!(id: account.id, key: "key", deadline: Time.now)
-    assert_instance_of account.class::Lockout, account.lockout
+    assert_instance_of Account::Lockout, account.lockout
 
     account.create_login_failure!(id: account.id)
-    assert_instance_of account.class::LoginFailure, account.login_failure
+    assert_instance_of Account::LoginFailure, account.login_failure
 
     account.create_email_auth_key!(id: account.id, key: "key", deadline: Time.now)
-    assert_instance_of account.class::EmailAuthKey, account.email_auth_key
+    assert_instance_of Account::EmailAuthKey, account.email_auth_key
 
     account.create_activity_time!(id: account.id, last_activity_at: Time.now, last_login_at: Time.now)
-    assert_instance_of account.class::ActivityTime, account.activity_time
+    assert_instance_of Account::ActivityTime, account.activity_time
 
     capture_io { account.active_session_keys.create!(session_id: "1") }
-    assert_instance_of account.class::ActiveSessionKey, account.active_session_keys.first
+    assert_instance_of Account::ActiveSessionKey, account.active_session_keys.first
 
     account.authentication_audit_logs.create!(message: "Foo")
-    assert_instance_of account.class::AuthenticationAuditLog, account.authentication_audit_logs.first
+    assert_instance_of Account::AuthenticationAuditLog, account.authentication_audit_logs.first
 
     account.previous_password_hashes.create!(password_hash: "secret")
-    assert_instance_of account.class::PreviousPasswordHash, account.previous_password_hashes.first
+    assert_instance_of Account::PreviousPasswordHash, account.previous_password_hashes.first
 
     account.jwt_refresh_keys.create!(key: "foo", deadline: Time.now)
-    assert_instance_of account.class::JwtRefreshKey, account.jwt_refresh_keys.first
+    assert_instance_of Account::JwtRefreshKey, account.jwt_refresh_keys.first
 
     account.create_password_change_time!(id: account.id)
-    assert_instance_of account.class::PasswordChangeTime, account.password_change_time
+    assert_instance_of Account::PasswordChangeTime, account.password_change_time
 
     account.create_session_key!(id: account.id, key: "key")
-    assert_instance_of account.class::SessionKey, account.session_key
+    assert_instance_of Account::SessionKey, account.session_key
 
     account.create_otp_key!(id: account.id, key: "key")
-    assert_instance_of account.class::OtpKey, account.otp_key
+    assert_instance_of Account::OtpKey, account.otp_key
 
     account.create_sms_code!(id: account.id, phone_number: "0123456789")
-    assert_instance_of account.class::SmsCode, account.sms_code
+    assert_instance_of Account::SmsCode, account.sms_code
 
-    if Rails.gem_version >= Gem::Version.new("5.0")
+    if ActiveRecord.version >= Gem::Version.new("5.0")
       capture_io { account.recovery_codes.create!(id: account.id, code: "foo") }
-      assert_instance_of account.class::RecoveryCode, account.recovery_codes.first
+      assert_instance_of Account::RecoveryCode, account.recovery_codes.first
     end
 
     unless RUBY_ENGINE == "jruby"
       account.create_webauthn_user_id!(id: account.id, webauthn_id: "id")
-      assert_instance_of account.class::WebauthnUserId, account.webauthn_user_id
+      assert_instance_of Account::WebauthnUserId, account.webauthn_user_id
 
-      if Rails.gem_version >= Gem::Version.new("5.0")
+      if ActiveRecord.version >= Gem::Version.new("5.0")
         capture_io { account.webauthn_keys.create!(webauthn_id: "id", public_key: "key", sign_count: 1) }
-        assert_instance_of account.class::WebauthnKey, account.webauthn_keys.first
+        assert_instance_of Account::WebauthnKey, account.webauthn_keys.first
       end
     end
   end
 
   it "automatically destroys associations" do
-    account = build_account { enable :audit_logging }
+    account = build_account { enable :audit_logging, :remember, :active_sessions }
     account.update!(password: "secret")
     account.create_remember_key!(id: account.id, key: "key", deadline: Time.now)
     capture_io { account.active_session_keys.create!(account_id: account.id, session_id: "id") }
@@ -154,25 +175,25 @@ describe "Active Record model mixin" do
   end
 
   it "accepts passing association options hash" do
-    account = build_account(association_options: { dependent: :nullify })
-    association = account.class.reflect_on_association(:remember_key)
+    account = build_account(association_options: { dependent: :nullify }) { enable :remember }
+    association = Account.reflect_on_association(:remember_key)
     assert_equal :nullify, association.options[:dependent]
   end
 
   it "accepts passing association options block" do
     account = build_account(association_options: -> (name) {
       { dependent: :nullify } if name == :remember_key
-    })
+    }) { enable :remember, :verify_account }
 
-    remember_association = account.class.reflect_on_association(:remember_key)
+    remember_association = Account.reflect_on_association(:remember_key)
     assert_equal :nullify, remember_association.options[:dependent]
 
-    verification_association = account.class.reflect_on_association(:verification_key)
+    verification_association = Account.reflect_on_association(:verification_key)
     assert_equal :delete, verification_association.options[:dependent]
   end
 
   it "defines inverse associations" do
-    account = build_account
+    account = build_account { enable :remember }
     account.save!
     account.create_remember_key!(id: account.id, key: "key", deadline: Time.now)
     account.reload
@@ -191,8 +212,6 @@ describe "Active Record model mixin" do
   end
 
   def build_account(**options, &block)
-    account_class = define_account_class
-
     rodauth_class = Class.new(Rodauth::Auth)
     rodauth_class.configure do
       enable :login_password_requirements_base
@@ -200,17 +219,7 @@ describe "Active Record model mixin" do
       instance_exec(&block) if block
     end
 
-    account_class.include Rodauth::Model(rodauth_class, **options)
-    account_class.new(email: "user@example.com")
+    Account.include Rodauth::Model(rodauth_class, **options)
+    Account.new(email: "user@example.com")
   end
-
-  def define_account_class
-    account_class = Class.new(ActiveRecord::Base)
-    account_class.table_name = :accounts
-    account_class
-  end
-
-  # after do
-  #   ActiveSupport::Dependencies.clear # clear cache used for :class_name association option
-  # end
 end

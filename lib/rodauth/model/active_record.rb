@@ -75,7 +75,7 @@ module Rodauth
         model.public_send type, name, scope,
           class_name: associated_model.name,
           foreign_key: foreign_key,
-          dependent: type == :has_many ? :delete_all : :delete,
+          dependent: dependent,
           inverse_of: :account,
           **options,
           **association_options(name)
