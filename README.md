@@ -1,34 +1,190 @@
-# Rodauth::Model
+# rodauth-model
 
-Welcome to your new gem! In this directory, you'll find the files you need to be able to package up your Ruby library into a gem. Put your Ruby code in the file `lib/rodauth/model`. To experiment with that code, run `bin/console` for an interactive prompt.
-
-TODO: Delete this and the text above, and describe your gem
+Extension for [Rodauth] providing a mixin for the account model that defines password attribute and associations based on enabled authentication features. At the moment only Active Record is supported.
 
 ## Installation
 
-Add this line to your application's Gemfile:
-
-```ruby
-gem 'rodauth-model'
+```sh
+$ bundle add rodauth-model
 ```
-
-And then execute:
-
-    $ bundle install
-
-Or install it yourself as:
-
-    $ gem install rodauth-model
 
 ## Usage
 
-TODO: Write usage instructions here
+Assuming with have a `RodauthApp` Roda subclass with Rodauth configured, we can build the mixin from a Rodauth class, and include it into the account model:
 
-## Development
+```rb
+require "rodauth/model" # require before enabling any authentication features
 
-After checking out the repo, run `bin/setup` to install dependencies. You can also run `bin/console` for an interactive prompt that will allow you to experiment.
+class RodauthApp < Roda
+  plugin :rodauth do
+    # ...
+  end
+end
+```
+```rb
+class Account < ActiveRecord::Base
+  include Rodauth::Model(RodauthApp.rodauth)
+end
+```
 
-To install this gem onto your local machine, run `bundle exec rake install`. To release a new version, update the version number in `version.rb`, and then run `bundle exec rake release`, which will create a git tag for the version, push git commits and the created tag, and push the `.gem` file to [rubygems.org](https://rubygems.org).
+If you have multiple Rodauth configurations, pass the one for which you want associations to be defined.
+
+```rb
+class Account < ActiveRecord::Base
+  include Rodauth::Model(RodauthApp.rodauth(:admin))
+end
+```
+
+### Password attribute
+
+Regardless of whether you're storing the password hash in a column in the accounts table, or in a separate table, the `#password` attribute can be used to set or clear the password hash.
+
+```rb
+account = Account.create!(email: "user@example.com", password: "secret")
+
+# when password hash is stored in a column on the accounts table
+account.password_hash #=> "$2a$12$k/Ub1I2iomi84RacqY89Hu4.M0vK7klRnRtzorDyvOkVI.hKhkNw."
+
+# when password hash is stored in a separate table
+account.password_hash #=> #<Account::PasswordHash...> (record from `account_password_hashes` table)
+account.password_hash.password_hash #=> "$2a$12$k/Ub1..." (inaccessible when using database authentication functions)
+
+account.password = nil # clears password hash
+account.password_hash #=> nil
+```
+
+Note that the password attribute doesn't come with validations, making it unsuitable for forms. It was primarily intended to allow easily creating accounts in development console and in tests.
+
+### Associations
+
+The mixin defines associations for Rodauth tables associated to the accounts table:
+
+```rb
+account.remember_key #=> #<Account::RememberKey> (record from `account_remember_keys` table)
+account.active_session_keys #=> [#<Account::ActiveSessionKey>,...] (records from `account_active_session_keys` table)
+```
+
+You can also reference the associated models directly:
+
+```rb
+# model referencing the `account_authentication_audit_logs` table
+Account::AuthenticationAuditLog.where(message: "login").group(:account_id)
+```
+
+The associated models define the inverse `belongs_to :account` association:
+
+```rb
+Account::ActiveSessionKey.includes(:account).map(&:account)
+```
+
+### Association options
+
+By default, all associations except for audit logs have `dependent: :delete` set, to allow for easy deletion of account records in the console. You can use `:association_options` to modify global or per-association options:
+
+```rb
+# don't auto-delete associations when account model is deleted
+Rodauth::Model(RodauthApp.rodauth, association_options: { dependent: nil })
+
+# require authentication audit logs to be eager loaded before retrieval
+Rodauth::Model(RodauthApp.rodauth, association_options: -> (name) {
+  { strict_loading: true } if name == :authentication_audit_logs
+})
+```
+
+## Association reference
+
+Below is a list of all associations defined depending on the features loaded:
+
+| Feature                 | Association                  | Type       | Model                    | Table (default)                     |
+| :------                 | :----------                  | :---       | :----                    | :----                               |
+| account_expiration      | `:activity_time`             | `has_one`  | `ActivityTime`           | `account_activity_times`            |
+| active_sessions         | `:active_session_keys`       | `has_many` | `ActiveSessionKey`       | `account_active_session_keys`       |
+| audit_logging           | `:authentication_audit_logs` | `has_many` | `AuthenticationAuditLog` | `account_authentication_audit_logs` |
+| disallow_password_reuse | `:previous_password_hashes`  | `has_many` | `PreviousPasswordHash`   | `account_previous_password_hashes`  |
+| email_auth              | `:email_auth_key`            | `has_one`  | `EmailAuthKey`           | `account_email_auth_keys`           |
+| jwt_refresh             | `:jwt_refresh_keys`          | `has_many` | `JwtRefreshKey`          | `account_jwt_refresh_keys`          |
+| lockout                 | `:lockout`                   | `has_one`  | `Lockout`                | `account_lockouts`                  |
+| lockout                 | `:login_failure`             | `has_one`  | `LoginFailure`           | `account_login_failures`            |
+| otp                     | `:otp_key`                   | `has_one`  | `OtpKey`                 | `account_otp_keys`                  |
+| password_expiration     | `:password_change_time`      | `has_one`  | `PasswordChangeTime`     | `account_password_change_times`     |
+| recovery_codes          | `:recovery_codes`            | `has_many` | `RecoveryCode`           | `account_recovery_codes`            |
+| remember                | `:remember_key`              | `has_one`  | `RememberKey`            | `account_remember_keys`             |
+| reset_password          | `:password_reset_key`        | `has_one`  | `PasswordResetKey`       | `account_password_reset_keys`       |
+| single_session          | `:session_key`               | `has_one`  | `SessionKey`             | `account_session_keys`              |
+| sms_codes               | `:sms_code`                  | `has_one`  | `SmsCode`                | `account_sms_codes`                 |
+| verify_account          | `:verification_key`          | `has_one`  | `VerificationKey`        | `account_verification_keys`         |
+| verify_login_change     | `:login_change_key`          | `has_one`  | `LoginChangeKey`         | `account_login_change_keys`         |
+| webauthn                | `:webauthn_keys`             | `has_many` | `WebauthnKey`            | `account_webauthn_keys`             |
+| webauthn                | `:webauthn_user_id`          | `has_one`  | `WebauthnUserId`         | `account_webauthn_user_ids`         |
+
+Note that some Rodauth tables use composite primary keys, which Active Record doesn't support out of the box. For associations to work properly, you might need to add the [composite_primary_keys] gem to your Gemfile.
+
+## Extending associations
+
+It's possible to register custom associations for an external feature, which the model mixin would pick up and automatically define the association on the model if the feature is enabled.
+
+```rb
+# lib/rodauth/features/foo.rb
+module Rodauth
+  Feature.define(:foo, :Foo) do
+    auth_value_method :foo_table, :account_foos
+    auth_value_method :foo_id_column, :id
+    # ...
+  end
+
+  if defined?(Model)
+    Model.register_association(:foo) do
+      { name: :foo, type: :one, table: foo_table, key: foo_id_column }
+    end
+  end
+end
+```
+
+The `Rodauth::Model.register_association` method receives the feature name and a block, which is evaluted in the context of a Rodauth instance and should return the association definition with the following items:
+
+* `:name` – association name
+* `:type` – relationship type (`:one` for one-to-one, `:many` for one-to-many)
+* `:table` – associated table name
+* `:key` – foreign key on the associated table
+
+It's possible to register multiple associations for a single Rodauth feature.
+
+## Examples
+
+### Checking whether account has multifactor authentication enabled
+
+```rb
+class Account < ActiveRecord::Base
+  include Rodauth::Model(RodauthApp.rodauth)
+
+  def mfa_enabled?
+    otp_key || (sms_code && sms_code.num_failures.nil?) || recovery_codes.any?
+  end
+end
+```
+
+### Retrieving all accounts with multifactor authentication enabled
+
+```rb
+class Account < ActiveRecord::Base
+  include Rodauth::Model(RodauthApp.rodauth)
+
+  scope :otp_setup, -> { where(otp_key: OtpKey.all) }
+  scope :sms_codes_setup, -> { where(sms_code: SmsCode.where(num_failures: nil)) }
+  scope :recovery_codes_setup, -> { where(recovery_codes: RecoveryCode.all) }
+  scope :mfa_enabled, -> { merge(otp_setup.or(sms_codes_setup).or(recovery_codes_setup)) }
+end
+```
+
+## Future plans
+
+### Sequel support
+
+Currently on Active Record models are supported, but I would like support Sequel models in the near future as well.
+
+### Joined associations
+
+It's possible to have multiple Rodauth configurations that operate on the same tables, but it's currently possible to define associations just for a single configuration. I would like to support grabbing associations from multiple associations.
 
 ## Contributing
 
@@ -41,3 +197,6 @@ The gem is available as open source under the terms of the [MIT License](https:/
 ## Code of Conduct
 
 Everyone interacting in the Rodauth::Model project's codebases, issue trackers, chat rooms and mailing lists is expected to follow the [code of conduct](https://github.com/janko/rodauth-model/blob/main/CODE_OF_CONDUCT.md).
+
+[Rodauth]: https://rodauth.jeremyevans.net
+[composite_primary_keys]: https://github.com/composite-primary-keys/composite_primary_keys
