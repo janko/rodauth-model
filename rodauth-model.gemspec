@@ -16,4 +16,6 @@ Gem::Specification.new do |spec|
 
   spec.files         = Dir["README.md", "LICENSE.txt", "CHANGELOG.md", "lib/**/*", "*.gemspec"]
   spec.require_paths = ["lib"]
+
+  spec.add_dependency "rodauth", "~> 2.0"
 end

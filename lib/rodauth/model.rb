@@ -10,6 +10,15 @@ module Rodauth
 
     autoload :ActiveRecord, "rodauth/model/active_record"
 
+    def self.associations
+      @associations ||= {}
+    end
+
+    def self.register_association(feature, &block)
+      associations[feature] ||= []
+      associations[feature] << block
+    end
+
     def initialize(auth_class, association_options: {})
       @auth_class = auth_class
       @association_options = association_options
@@ -18,6 +27,8 @@ module Rodauth
     def included(model)
       if defined?(::ActiveRecord::Base) && model < ::ActiveRecord::Base
         extend Rodauth::Model::ActiveRecord
+      elsif defined?(::Sequel::Model) && model < ::Sequel::Model
+        raise Error, "Sequel models are not yet supported"
       else
         raise Error, "must be an Active Record model"
       end
@@ -29,5 +40,21 @@ module Rodauth
     def inspect
       "#<#{self.class}(#{@auth_class.inspect})>"
     end
+
+    private
+
+    def feature_associations
+      self.class.associations
+        .values_at(*rodauth.features)
+        .compact
+        .flatten
+        .map { |block| rodauth.instance_exec(&block) }
+    end
+
+    def rodauth
+      @auth_class.allocate
+    end
   end
 end
+
+require "rodauth/model/associations"

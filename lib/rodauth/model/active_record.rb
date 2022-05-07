@@ -5,6 +5,8 @@ require "rodauth/model/associations"
 module Rodauth
   class Model
     module ActiveRecord
+      ASSOCIATION_TYPES = { one: :has_one, many: :has_many }
+
       private
 
       def define_methods(model)
@@ -36,6 +38,9 @@ module Rodauth
         define_password_hash_association(model) unless rodauth.account_password_hash_column
 
         feature_associations.each do |association|
+          association[:type] = ASSOCIATION_TYPES.fetch(association[:type])
+          association[:foreign_key] = association.delete(:key)
+
           define_association(model, **association)
         end
       end
@@ -63,6 +68,10 @@ module Rodauth
 
         model.const_set(name.to_s.singularize.camelize, associated_model)
 
+        unless name == :authentication_audit_logs
+          dependent = type == :has_many ? :delete_all : :delete
+        end
+
         model.public_send type, name, scope,
           class_name: associated_model.name,
           foreign_key: foreign_key,
@@ -72,18 +81,10 @@ module Rodauth
           **association_options(name)
       end
 
-      def feature_associations
-        Rodauth::Model::Associations.call(rodauth)
-      end
-
       def association_options(name)
         options = @association_options
         options = options.call(name) if options.respond_to?(:call)
         options || {}
-      end
-
-      def rodauth
-        @auth_class.allocate
       end
     end
   end
