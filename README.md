@@ -147,7 +147,7 @@ The `Rodauth::Model.register_association` method receives the feature name and a
 * `:table` – associated table name
 * `:key` – foreign key on the associated table
 
-It's possible to register multiple associations for a single Rodauth feature.
+It's possible to register multiple associations for the same Rodauth feature.
 
 ## Examples
 
