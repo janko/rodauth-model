@@ -180,7 +180,7 @@ end
 
 ### Sequel support
 
-Currently on Active Record models are supported, but I would like support Sequel models in the near future as well.
+Currently only Active Record models are supported, but I would like support Sequel models in the near future as well.
 
 ### Joined associations
 
