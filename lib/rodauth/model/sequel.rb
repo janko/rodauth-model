@@ -1,16 +1,23 @@
 # frozen_string_literal: true
 
-require "rodauth/model/associations"
+require "sequel"
 
 module Rodauth
   class Model
-    module ActiveRecord
-      ASSOCIATION_TYPES = { one: :has_one, many: :has_many }
+    module Sequel
+      include ::Sequel::Inflections
+
+      ASSOCIATION_TYPES = { one: :one_to_one, many: :one_to_many }
 
       private
 
       def define_methods(model)
         rodauth = @auth_class.allocate.freeze
+
+        unless rodauth.account_password_hash_column
+          model.plugin :nested_attributes
+          model.nested_attributes :password_hash, destroy: true
+        end
 
         attr_reader :password
 
@@ -24,57 +31,56 @@ module Rodauth
           if rodauth.account_password_hash_column
             public_send(:"#{rodauth.account_password_hash_column}=", password_hash)
           else
+            return if password_hash.nil? && self.password_hash.nil?
+
+            attributes = { rodauth.password_hash_id_column => self.password_hash&.pk }.compact
             if password_hash
-              record = self.password_hash || build_password_hash
-              record.public_send(:"#{rodauth.password_hash_column}=", password_hash)
-            else
-              self.password_hash&.mark_for_destruction
+              attributes[rodauth.password_hash_column] = password_hash
+            elsif
+              attributes[:_delete] = true
             end
+            self.password_hash_attributes = attributes
           end
         end
       end
 
       def define_associations(model)
+        model.plugin :association_dependencies
+
         define_password_hash_association(model) unless rodauth.account_password_hash_column
 
         feature_associations.each do |association|
           association[:type] = ASSOCIATION_TYPES.fetch(association[:type])
-          association[:foreign_key] = association.delete(:key)
 
           define_association(model, **association)
         end
       end
 
       def define_password_hash_association(model)
-        password_hash_id_column = rodauth.password_hash_id_column
-        scope = -> { select(password_hash_id_column) } if rodauth.send(:use_database_authentication_functions?)
+        select = [rodauth.password_hash_id_column] if rodauth.send(:use_database_authentication_functions?)
 
         define_association model,
-          type: :has_one,
+          type: :one_to_one,
           name: :password_hash,
           table: rodauth.password_hash_table,
-          foreign_key: password_hash_id_column,
-          scope: scope,
-          autosave: true
+          key: rodauth.password_hash_id_column,
+          select: select
       end
 
-      def define_association(model, type:, name:, table:, foreign_key:, scope: nil, **options)
-        associated_model = Class.new(model.superclass)
-        associated_model.table_name = table
-        associated_model.belongs_to :account,
-          class_name: model.name,
-          foreign_key: foreign_key,
-          inverse_of: name
+      def define_association(model, type:, name:, table:, key:, **options)
+        associated_model = Class.new(::Sequel::Model)
+        associated_model.set_dataset(model.db[table])
+        associated_model.many_to_one :account, class: model.name, key: key
 
-        model.const_set(name.to_s.singularize.camelize, associated_model)
+        model.const_set(camelize(singularize(name.to_s)), associated_model)
 
-        model.public_send type, name, scope,
-          class_name: associated_model.name,
-          foreign_key: foreign_key,
-          dependent: type == :has_many ? :delete_all : :delete,
-          inverse_of: :account,
+        model.public_send type, name,
+          class: associated_model.name,
+          key: key,
           **options,
           **association_options(name)
+
+        model.add_association_dependencies name => :delete
       end
 
       def association_options(name)

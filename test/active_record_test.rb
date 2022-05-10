@@ -1,4 +1,5 @@
 require "test_helper"
+require_relative "support/active_record"
 
 describe "Active Record model mixin" do
   around do |&block|
@@ -25,7 +26,7 @@ describe "Active Record model mixin" do
   end
 
   it "defines password attribute with a column" do
-    account = password_column_account
+    account = build_account { account_password_hash_column :password_hash }
 
     account.password = "secret"
     assert_equal "secret", account.password
@@ -44,7 +45,7 @@ describe "Active Record model mixin" do
   end
 
   it "defines password attribute with a table" do
-    account = password_table_account
+    account = build_account { account_password_hash_column nil }
 
     account.password = "secret"
     assert_equal "secret", account.password
@@ -58,7 +59,7 @@ describe "Active Record model mixin" do
 
     account.password = "new secret"
     assert_operator BCrypt::Password.new(account.password_hash.password_hash), :==, "new secret"
-    account.password_hash.password_hash_changed?
+    assert account.password_hash.password_hash_changed?
 
     account.save!
     refute account.password_hash.changed?
@@ -76,7 +77,7 @@ describe "Active Record model mixin" do
     assert_nil account.password_hash
   end
 
-  it "doesn't selecting password hash column when using database authentication functions" do
+  it "doesn't select password hash column when using database authentication functions" do
     account = build_account { use_database_authentication_functions? true }
     account.update(password: "secret")
     account.reload
@@ -163,18 +164,16 @@ describe "Active Record model mixin" do
     end
   end
 
-  it "automatically destroys associations" do
+  it "automatically deletes associations" do
     account = build_account { enable :audit_logging, :remember, :active_sessions }
     account.update!(password: "secret")
     account.create_remember_key!(id: account.id, key: "key", deadline: Time.now)
     capture_io { account.active_session_keys.create!(account_id: account.id, session_id: "id") }
-    account.authentication_audit_logs.create!(message: "Foo")
     capture_io { account.destroy }
 
     assert account.password_hash.destroyed?
     assert account.remember_key.destroyed?
     capture_io { assert_equal 0, account.active_session_keys.reload.count }
-    assert_equal 1, account.authentication_audit_logs.reload.count
   end
 
   it "accepts passing association options hash" do
@@ -205,14 +204,6 @@ describe "Active Record model mixin" do
   end
 
   private
-
-  def password_column_account(**options)
-    build_account(**options) { account_password_hash_column :password_hash }
-  end
-
-  def password_table_account(**options)
-    build_account(**options) { account_password_hash_column nil }
-  end
 
   def build_account(**options, &block)
     rodauth_class = Class.new(Rodauth::Auth)

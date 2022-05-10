@@ -1,6 +1,6 @@
 # rodauth-model
 
-Extension for [Rodauth] providing a mixin for the account model that defines password attribute and associations based on enabled authentication features. At the moment only Active Record is supported.
+Extension for [Rodauth] providing a mixin for the account model that defines password attribute and associations based on enabled authentication features. Supports both Active Record and Sequel models.
 
 ## Installation
 
@@ -22,7 +22,7 @@ class RodauthApp < Roda
 end
 ```
 ```rb
-class Account < ActiveRecord::Base
+class Account < ActiveRecord::Base # Sequel::Model
   include Rodauth::Model(RodauthApp.rodauth)
 end
 ```
@@ -30,7 +30,7 @@ end
 If you have multiple Rodauth configurations, pass the one for which you want associations to be defined.
 
 ```rb
-class Account < ActiveRecord::Base
+class Account < ActiveRecord::Base # Sequel::Model
   include Rodauth::Model(RodauthApp.rodauth(:admin))
 end
 ```
@@ -40,7 +40,7 @@ end
 Regardless of whether you're storing the password hash in a column in the accounts table, or in a separate table, the `#password` attribute can be used to set or clear the password hash.
 
 ```rb
-account = Account.create!(email: "user@example.com", password: "secret")
+account = Account.create(email: "user@example.com", password: "secret")
 
 # when password hash is stored in a column on the accounts table
 account.password_hash #=> "$2a$12$k/Ub1I2iomi84RacqY89Hu4.M0vK7klRnRtzorDyvOkVI.hKhkNw."
@@ -74,7 +74,7 @@ Account::AuthenticationAuditLog.where(message: "login").group(:account_id)
 The associated models define the inverse `belongs_to :account` association:
 
 ```rb
-Account::ActiveSessionKey.includes(:account).map(&:account)
+Account::ActiveSessionKey.eager(:account).map(&:account)
 ```
 
 ### Association options
@@ -82,12 +82,12 @@ Account::ActiveSessionKey.includes(:account).map(&:account)
 By default, all associations except for audit logs have `dependent: :delete` set, to allow for easy deletion of account records in the console. You can use `:association_options` to modify global or per-association options:
 
 ```rb
-# don't auto-delete associations when account model is deleted
+# don't auto-delete associations when account model is deleted (Active Record)
 Rodauth::Model(RodauthApp.rodauth, association_options: { dependent: nil })
 
-# require authentication audit logs to be eager loaded before retrieval
+# require authentication audit logs to be eager loaded before retrieval (Sequel)
 Rodauth::Model(RodauthApp.rodauth, association_options: -> (name) {
-  { strict_loading: true } if name == :authentication_audit_logs
+  { forbid_lazy_load: true } if name == :authentication_audit_logs
 })
 ```
 
@@ -117,7 +117,7 @@ Below is a list of all associations defined depending on the features loaded:
 | webauthn                | `:webauthn_keys`             | `has_many` | `WebauthnKey`            | `account_webauthn_keys`             |
 | webauthn                | `:webauthn_user_id`          | `has_one`  | `WebauthnUserId`         | `account_webauthn_user_ids`         |
 
-Note that some Rodauth tables use composite primary keys, which Active Record doesn't support out of the box. For associations to work properly, you might need to add the [composite_primary_keys] gem to your Gemfile.
+Note that some Rodauth tables use composite primary keys, which Active Record doesn't support out of the box. For associations to work properly in Active Record, you might need to add the [composite_primary_keys] gem to your Gemfile. On Sequel, associations will work without any changes, because Sequel supports composite primary keys.
 
 ## Extending associations
 
@@ -177,10 +177,6 @@ end
 ```
 
 ## Future plans
-
-### Sequel support
-
-Currently only Active Record models are supported, but I would like support Sequel models in the near future as well.
 
 ### Joined associations
 

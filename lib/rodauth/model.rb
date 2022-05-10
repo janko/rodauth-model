@@ -9,6 +9,7 @@ module Rodauth
     Error = Class.new(StandardError)
 
     autoload :ActiveRecord, "rodauth/model/active_record"
+    autoload :Sequel, "rodauth/model/sequel"
 
     def self.associations
       @associations ||= {}
@@ -28,9 +29,9 @@ module Rodauth
       if defined?(::ActiveRecord::Base) && model < ::ActiveRecord::Base
         extend Rodauth::Model::ActiveRecord
       elsif defined?(::Sequel::Model) && model < ::Sequel::Model
-        raise Error, "Sequel models are not yet supported"
+        extend Rodauth::Model::Sequel
       else
-        raise Error, "must be an Active Record model"
+        raise Error, "must be an Active Record or Sequel model"
       end
 
       define_associations(model)

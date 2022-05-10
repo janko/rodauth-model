@@ -7,5 +7,3 @@ require "minitest/hooks/default"
 require "rodauth"
 require "rodauth/model"
 require "bcrypt"
-
-require_relative "support/active_record"
