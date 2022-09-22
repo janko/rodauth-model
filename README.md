@@ -10,7 +10,7 @@ $ bundle add rodauth-model
 
 ## Usage
 
-Assuming with have a `RodauthApp` Roda subclass with Rodauth configured, we can build the mixin from a Rodauth class, and include it into the account model:
+The model mixin is built calling `Rodauth::Model(...)` with the Rodauth auth class, and should be included into the account model:
 
 ```rb
 require "rodauth/model" # require before enabling any authentication features
@@ -71,7 +71,7 @@ You can also reference the associated models directly:
 Account::AuthenticationAuditLog.where(message: "login").group(:account_id)
 ```
 
-The associated models define the inverse `belongs_to :account` association:
+The associated models define the inverse `account` association:
 
 ```rb
 Account::ActiveSessionKey.eager(:account).map(&:account)
@@ -79,7 +79,7 @@ Account::ActiveSessionKey.eager(:account).map(&:account)
 
 ### Association options
 
-By default, all associations except for audit logs have `dependent: :delete` set, to allow for easy deletion of account records in the console. You can use `:association_options` to modify global or per-association options:
+By default, all associations are configured to be deleted when the associated account record is deleted. When using Active Record, you can use `:association_options` to modify global or per-association options:
 
 ```rb
 # don't auto-delete associations when account model is deleted (Active Record)
