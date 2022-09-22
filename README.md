@@ -10,7 +10,7 @@ $ bundle add rodauth-model
 
 ## Usage
 
-The model mixin is built calling `Rodauth::Model(...)` with the Rodauth auth class, and should be included into the account model:
+The model mixin is built by calling `Rodauth::Model(...)` with the Rodauth auth class, and included into the account model:
 
 ```rb
 require "rodauth/model" # require before enabling any authentication features
