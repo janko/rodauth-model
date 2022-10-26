@@ -1,4 +1,4 @@
-## HEAD
+## 0.2.1 (2022-10-26)
 
 * Fix `elsif` warning in sequel code (@janko)
 
