@@ -36,7 +36,7 @@ module Rodauth
             attributes = { rodauth.password_hash_id_column => self.password_hash&.pk }.compact
             if password_hash
               attributes[rodauth.password_hash_column] = password_hash
-            elsif
+            else
               attributes[:_delete] = true
             end
             self.password_hash_attributes = attributes
