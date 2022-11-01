@@ -131,11 +131,11 @@ module Rodauth
     auth_value_method :foo_id_column, :id
     # ...
   end
+end
 
-  if defined?(Model)
-    Model.register_association(:foo) do
-      { name: :foo, type: :one, table: foo_table, key: foo_id_column }
-    end
+if defined?(Rodauth::Model)
+  Rodauth::Model.register_association(:foo) do
+    { name: :foo, type: :one, table: foo_table, key: foo_id_column }
   end
 end
 ```
