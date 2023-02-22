@@ -23,7 +23,7 @@ module Rodauth
 
         define_method(:password=) do |password|
           @password = password
-          password_hash = rodauth.send(:password_hash, password) if password
+          password_hash = rodauth.password_hash(password) if password
           set_password_hash(password_hash)
         end
 
