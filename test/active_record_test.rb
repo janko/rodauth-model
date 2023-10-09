@@ -124,7 +124,7 @@ describe "Active Record model mixin" do
     account.create_activity_time!(id: account.id, last_activity_at: Time.now, last_login_at: Time.now)
     assert_instance_of Account::ActivityTime, account.activity_time
 
-    capture_io { account.active_session_keys.create!(session_id: "1") }
+    account.active_session_keys.create!(session_id: "1")
     assert_instance_of Account::ActiveSessionKey, account.active_session_keys.first
 
     account.authentication_audit_logs.create!(message: "Foo")
@@ -149,7 +149,7 @@ describe "Active Record model mixin" do
     assert_instance_of Account::SmsCode, account.sms_code
 
     if ActiveRecord.version >= Gem::Version.new("5.0")
-      capture_io { account.recovery_codes.create!(id: account.id, code: "foo") }
+      Account::RecoveryCode.create!(id_value: account.id, code: "foo")
       assert_instance_of Account::RecoveryCode, account.recovery_codes.first
     end
 
@@ -158,7 +158,7 @@ describe "Active Record model mixin" do
       assert_instance_of Account::WebauthnUserId, account.webauthn_user_id
 
       if ActiveRecord.version >= Gem::Version.new("5.0")
-        capture_io { account.webauthn_keys.create!(webauthn_id: "id", public_key: "key", sign_count: 1) }
+        account.webauthn_keys.create!(webauthn_id: "id", public_key: "key", sign_count: 1)
         assert_instance_of Account::WebauthnKey, account.webauthn_keys.first
       end
     end
@@ -168,12 +168,12 @@ describe "Active Record model mixin" do
     account = build_account { enable :audit_logging, :remember, :active_sessions }
     account.update!(password: "secret")
     account.create_remember_key!(id: account.id, key: "key", deadline: Time.now)
-    capture_io { account.active_session_keys.create!(account_id: account.id, session_id: "id") }
-    capture_io { account.destroy }
+    account.active_session_keys.create!(account_id: account.id, session_id: "id")
+    account.destroy
 
     assert account.password_hash.destroyed?
     assert account.remember_key.destroyed?
-    capture_io { assert_equal 0, account.active_session_keys.reload.count }
+    assert_equal 0, account.active_session_keys.reload.count
   end
 
   it "accepts passing association options hash" do
