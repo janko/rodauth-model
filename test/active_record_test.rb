@@ -148,19 +148,19 @@ describe "Active Record model mixin" do
     account.create_sms_code!(id: account.id, phone_number: "0123456789")
     assert_instance_of Account::SmsCode, account.sms_code
 
-    if ActiveRecord.version >= Gem::Version.new("5.0")
+    if ActiveRecord.version >= Gem::Version.new("7.1")
       Account::RecoveryCode.create!(id_value: account.id, code: "foo")
-      assert_instance_of Account::RecoveryCode, account.recovery_codes.first
+    else
+      Account::RecoveryCode.create!(id: account.id, code: "foo")
     end
+    assert_instance_of Account::RecoveryCode, account.recovery_codes.first
 
     unless RUBY_ENGINE == "jruby"
       account.create_webauthn_user_id!(id: account.id, webauthn_id: "id")
       assert_instance_of Account::WebauthnUserId, account.webauthn_user_id
 
-      if ActiveRecord.version >= Gem::Version.new("5.0")
-        account.webauthn_keys.create!(webauthn_id: "id", public_key: "key", sign_count: 1)
-        assert_instance_of Account::WebauthnKey, account.webauthn_keys.first
-      end
+      account.webauthn_keys.create!(webauthn_id: "id", public_key: "key", sign_count: 1)
+      assert_instance_of Account::WebauthnKey, account.webauthn_keys.first
     end
   end
 
