@@ -13,18 +13,17 @@ $ bundle add rodauth-model
 The model mixin is built by calling `Rodauth::Model(...)` with the Rodauth auth class, and included into the account model:
 
 ```rb
-require "rodauth"
 require "rodauth/model" # require before enabling any authentication features
 
-class RodauthMain < Rodauth::Auth
-  configure do
+class RodauthApp < Roda
+  plugin :rodauth do
     # ...
   end
 end
 ```
 ```rb
 class Account < ActiveRecord::Base # Sequel::Model
-  include Rodauth::Model(RodauthMain)
+  include Rodauth::Model(RodauthApp.rodauth)
 end
 ```
 
@@ -76,10 +75,10 @@ By default, all associations are configured to be deleted when the associated ac
 
 ```rb
 # don't auto-delete associations when account model is deleted (Active Record)
-Rodauth::Model(RodauthMain, association_options: { dependent: nil })
+Rodauth::Model(RodauthApp.rodauth, association_options: { dependent: nil })
 
 # require authentication audit logs to be eager loaded before retrieval (Sequel)
-Rodauth::Model(RodauthMain, association_options: -> (name) {
+Rodauth::Model(RodauthApp.rodauth, association_options: -> (name) {
   { forbid_lazy_load: true } if name == :authentication_audit_logs
 })
 ```
@@ -148,7 +147,7 @@ It's possible to register multiple associations for the same Rodauth feature.
 
 ```rb
 class Account < ActiveRecord::Base
-  include Rodauth::Model(RodauthMain)
+  include Rodauth::Model(RodauthApp.rodauth)
 
   def mfa_enabled?
     otp_key || (sms_code && sms_code.num_failures.nil?) || recovery_codes.any?
@@ -160,7 +159,7 @@ end
 
 ```rb
 class Account < ActiveRecord::Base
-  include Rodauth::Model(RodauthMain)
+  include Rodauth::Model(RodauthApp.rodauth)
 
   scope :otp_setup, -> { where(otp_key: OtpKey.all) }
   scope :sms_codes_setup, -> { where(sms_code: SmsCode.where(num_failures: nil)) }
