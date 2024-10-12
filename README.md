@@ -83,6 +83,20 @@ Rodauth::Model(RodauthApp.rodauth, association_options: -> (name) {
 })
 ```
 
+### Extending models
+
+When using Zeitwerk autoloading, extending an associated model in a separate file won't work, because Zeitwerk has no reason to load it, since the constant was already defined. You can work around this by extending the model in the parent file:
+
+```rb
+class Account < ActiveRecord::Base
+  include Rodauth::Model(RodauthApp.rodauth) # defines associated models
+
+  class ActiveSessionKey < ActiveRecord::Base
+    # extend the model
+  end
+end
+```
+
 ## Association reference
 
 Below is a list of all associations defined depending on the features loaded:
