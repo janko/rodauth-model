@@ -112,6 +112,7 @@ Below is a list of all associations defined depending on the features loaded:
 | lockout                 | `:lockout`                   | `has_one`  | `Lockout`                | `account_lockouts`                  |
 | lockout                 | `:login_failure`             | `has_one`  | `LoginFailure`           | `account_login_failures`            |
 | otp                     | `:otp_key`                   | `has_one`  | `OtpKey`                 | `account_otp_keys`                  |
+| otp_unlock              | `:otp_unlock`                | `has_one`  | `OtpUnlock`              | `account_otp_unlocks`               |
 | password_expiration     | `:password_change_time`      | `has_one`  | `PasswordChangeTime`     | `account_password_change_times`     |
 | recovery_codes          | `:recovery_codes`            | `has_many` | `RecoveryCode`           | `account_recovery_codes`            |
 | remember                | `:remember_key`              | `has_one`  | `RememberKey`            | `account_remember_keys`             |
