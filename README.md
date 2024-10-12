@@ -124,7 +124,7 @@ Below is a list of all associations defined depending on the features loaded:
 | webauthn                | `:webauthn_keys`             | `has_many` | `WebauthnKey`            | `account_webauthn_keys`             |
 | webauthn                | `:webauthn_user_id`          | `has_one`  | `WebauthnUserId`         | `account_webauthn_user_ids`         |
 
-> ![NOTE]
+> [!NOTE]
 > Note that some Rodauth tables use composite primary keys, which are supported in Active Record 7.1+. If you're on an older version of Active Record, you might need to add the [composite_primary_keys] gem to your Gemfile. Sequel has always natively supported composite primary keys.
 
 ## Extending associations
