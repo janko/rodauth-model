@@ -143,6 +143,12 @@ DB.create_table :account_otp_keys do
   Time :last_use, null: false, default: Sequel::CURRENT_TIMESTAMP
 end
 
+DB.create_table :account_otp_unlocks do
+  foreign_key :id, :accounts, primary_key: true
+  Integer :num_successes, null: false, default: 1
+  Time :next_auth_attempt_after, null: false, default: Sequel::CURRENT_TIMESTAMP
+end
+
 # Used by the recovery codes feature
 DB.create_table :account_recovery_codes do
   foreign_key :id, :accounts

@@ -46,6 +46,9 @@ module Rodauth
   Model.register_association(:otp) do
     { name: :otp_key, type: :one, table: otp_keys_table, key: otp_keys_id_column }
   end
+  Model.register_association(:otp_unlock) do
+    { name: :otp_unlock, type: :one, table: otp_unlock_table, key: otp_unlock_id_column }
+  end
   Model.register_association(:sms_codes) do
     { name: :sms_code, type: :one, table: sms_codes_table, key: sms_id_column }
   end

@@ -91,7 +91,7 @@ describe "Active Record model mixin" do
   it "defines feature associations" do
     account = build_account do
       enable :jwt_refresh, :email_auth, :account_expiration, :audit_logging,
-        :disallow_password_reuse, :otp, :sms_codes, :password_expiration,
+        :disallow_password_reuse, :otp, :otp_unlock, :sms_codes, :password_expiration,
         :single_session, :remember, :verify_account, :reset_password,
         :verify_login_change, :lockout, :active_sessions, :recovery_codes
 
@@ -144,6 +144,9 @@ describe "Active Record model mixin" do
 
     account.create_otp_key!(id: account.id, key: "key")
     assert_instance_of Account::OtpKey, account.otp_key
+
+    account.create_otp_unlock!(id: account.id)
+    assert_instance_of Account::OtpUnlock, account.otp_unlock
 
     account.create_sms_code!(id: account.id, phone_number: "0123456789")
     assert_instance_of Account::SmsCode, account.sms_code

@@ -145,6 +145,13 @@ ActiveRecord::Schema.define do
     t.datetime :last_use, null: false, default: -> { "CURRENT_TIMESTAMP" }
   end
 
+  # Used by the otp_unlock feature
+  create_table :account_otp_unlocks do |t|
+    t.foreign_key :accounts, column: :id
+    t.integer :num_successes, null: false, default: 1
+    t.datetime :next_auth_attempt_after, null: false, default: -> { "CURRENT_TIMESTAMP" }
+  end
+
   # Used by the recovery codes feature
   create_table :account_recovery_codes, primary_key: [:id, :code] do |t|
     t.integer :id

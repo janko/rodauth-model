@@ -79,7 +79,7 @@ describe "Sequel model mixin" do
   it "defines feature associations" do
     account = build_account do
       enable :jwt_refresh, :email_auth, :account_expiration, :audit_logging,
-        :disallow_password_reuse, :otp, :sms_codes, :password_expiration,
+        :disallow_password_reuse, :otp, :otp_unlock, :sms_codes, :password_expiration,
         :single_session, :remember, :verify_account, :reset_password,
         :verify_login_change, :lockout, :active_sessions, :recovery_codes
 
@@ -132,6 +132,9 @@ describe "Sequel model mixin" do
 
     account.otp_key = Account::OtpKey.new(key: "key")
     assert_instance_of Account::OtpKey, account.reload.otp_key
+
+    account.otp_unlock = Account::OtpUnlock.new
+    assert_instance_of Account::OtpUnlock, account.reload.otp_unlock
 
     account.sms_code = Account::SmsCode.new(phone_number: "0123456789")
     assert_instance_of Account::SmsCode, account.reload.sms_code
