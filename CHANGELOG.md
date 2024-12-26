@@ -2,6 +2,8 @@
 
 * Add `password?` model method that returns whether a password is set (@janko)
 
+* Drop support for Ruby 2.3 and 2.4 (@janko)
+
 ## 0.3.0 (2024-10-12)
 
 * Add support for OTP Unlock feature (@janko)
