@@ -41,8 +41,12 @@ account.password_hash #=> "$2a$12$k/Ub1I2iomi84RacqY89Hu4.M0vK7klRnRtzorDyvOkVI.
 account.password_hash #=> #<Account::PasswordHash...> (record from `account_password_hashes` table)
 account.password_hash.password_hash #=> "$2a$12$k/Ub1..." (inaccessible when using database authentication functions)
 
+# whether a password is set
+account.password? #=> true
+
 account.password = nil # clears password hash
 account.password_hash #=> nil
+account.password? #=> false
 ```
 
 Note that the password attribute doesn't come with validations, making it unsuitable for forms. It was primarily intended to allow easily creating accounts in development console and in tests.

@@ -30,6 +30,7 @@ describe "Active Record model mixin" do
 
     account.password = "secret"
     assert_equal "secret", account.password
+    assert_equal true, account.password?
 
     refute_nil account.password_hash
     assert_operator BCrypt::Password.new(account.password_hash), :==, "secret"
@@ -42,6 +43,7 @@ describe "Active Record model mixin" do
 
     account.password = nil
     assert_nil account.password_hash
+    assert_equal false, account.password?
   end
 
   it "defines password attribute with a table" do
@@ -49,6 +51,7 @@ describe "Active Record model mixin" do
 
     account.password = "secret"
     assert_equal "secret", account.password
+    assert_equal true, account.password?
 
     assert_instance_of Account::PasswordHash, account.password_hash
     assert_operator BCrypt::Password.new(account.password_hash.password_hash), :==, "secret"
@@ -75,6 +78,7 @@ describe "Active Record model mixin" do
 
     account.reload
     assert_nil account.password_hash
+    assert_equal false, account.password?
   end
 
   it "doesn't select password hash column when using database authentication functions" do

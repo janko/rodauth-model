@@ -32,6 +32,14 @@ module Rodauth
             end
           end
         end
+
+        define_method(:password?) do
+          if rodauth.account_password_hash_column
+            !!public_send(rodauth.account_password_hash_column)
+          else
+            !!password_hash
+          end
+        end
       end
 
       def define_associations(model)
