@@ -152,7 +152,7 @@ if defined?(Rodauth::Model)
 end
 ```
 
-The `Rodauth::Model.register_association` method receives the feature name and a block, which is evaluted in the context of a Rodauth instance and should return the association definition with the following items:
+The `Rodauth::Model.register_association` method receives the feature name and a block, which is evaluated in the context of a Rodauth instance and should return the association definition with the following items:
 
 * `:name` – association name
 * `:type` – relationship type (`:one` for one-to-one, `:many` for one-to-many)
