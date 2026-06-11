@@ -1,3 +1,4 @@
+require "logger" if RUBY_VERSION < "2.7" # ActiveSupport 6.1 doesn't require this itself
 require "active_record"
 
 ActiveRecord::Base.establish_connection(
