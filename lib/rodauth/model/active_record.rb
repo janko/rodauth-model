@@ -43,7 +43,7 @@ module Rodauth
       end
 
       def define_associations(model)
-        define_password_hash_association(model) unless rodauth.account_password_hash_column
+        define_password_hash_association(model) if password_hash_association?
 
         feature_associations.each do |association|
           association[:type] = ASSOCIATION_TYPES.fetch(association[:type])

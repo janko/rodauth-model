@@ -1,3 +1,7 @@
+## Unreleased
+
+* Don't define the password hash association when no password feature is enabled, which previously failed on `Account#destroy` for setups such as OmniAuth-only authentication (@janko)
+
 ## 0.4.0 (2024-12-16)
 
 * Add `password?` model method that returns whether a password is set (@janko)

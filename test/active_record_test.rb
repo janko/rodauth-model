@@ -183,6 +183,20 @@ describe "Active Record model mixin" do
     assert_equal 0, account.active_session_keys.reload.count
   end
 
+  it "doesn't define password hash association without a password feature" do
+    # rodauth-omniauth enables the :login feature, but doesn't manage passwords
+    rodauth_class = Class.new(Rodauth::Auth)
+    rodauth_class.configure { enable :login }
+    Account.include Rodauth::Model(rodauth_class)
+
+    assert_nil Account.reflect_on_association(:password_hash)
+    refute Account.const_defined?(:PasswordHash, false)
+
+    account = Account.create!(email: "user@example.com")
+    account.destroy # doesn't attempt to delete from account_password_hashes
+    assert account.destroyed?
+  end
+
   it "accepts passing association options hash" do
     account = build_account(association_options: { dependent: :nullify }) { enable :remember }
     association = Account.reflect_on_association(:remember_key)

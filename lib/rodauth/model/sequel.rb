@@ -14,7 +14,7 @@ module Rodauth
       def define_methods(model)
         rodauth = @auth_class.allocate.freeze
 
-        unless rodauth.account_password_hash_column
+        if password_hash_association?
           model.plugin :nested_attributes
           model.nested_attributes :password_hash, destroy: true
         end
@@ -55,7 +55,7 @@ module Rodauth
       def define_associations(model)
         model.plugin :association_dependencies
 
-        define_password_hash_association(model) unless rodauth.account_password_hash_column
+        define_password_hash_association(model) if password_hash_association?
 
         feature_associations.each do |association|
           association[:type] = ASSOCIATION_TYPES.fetch(association[:type])

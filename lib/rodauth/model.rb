@@ -52,6 +52,15 @@ module Rodauth
         .map { |block| rodauth.instance_exec(&block) }
     end
 
+    # The password hash is stored in a separate table only when Rodauth is
+    # configured to manage passwords (i.e. when a password-handling feature is
+    # enabled). Without this check we'd define an association against a table
+    # that doesn't exist, which would fail on Account#destroy.
+    def password_hash_association?
+      !rodauth.account_password_hash_column &&
+        rodauth.features.include?(:login_password_requirements_base)
+    end
+
     def rodauth
       @auth_class.allocate
     end
