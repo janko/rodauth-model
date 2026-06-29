@@ -1,4 +1,4 @@
-## Unreleased
+## 0.5.0 (2026-06-29)
 
 * Don't define the password hash association when no password feature is enabled, which previously failed on `Account#destroy` for setups such as OmniAuth-only authentication (@janko)
 
